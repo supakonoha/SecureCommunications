@@ -1,0 +1,12 @@
+## Build generated
+build/
+DerivedData/
+
+# System
+.DS_Store
+
+# Swift Package Manager
+.build/
+.swiftpm
+Packages/
+
