@@ -24,19 +24,20 @@
 //
 
 import Foundation
+import CryptoKit
 
 extension String {
     /**
      Encrypts current string using ChaChaPoly cipher.
 
      - Parameters:
-        - publicKey: Raw Representation of Recipient P-256 puiblic key coded on Base64.
+        - recipientPublicKey: Recipient public key.
         - salt: The salt to use for key derivation.
 
-     - Returns: ChaChaPoly Selead box combined as `nonce || ciphertext || tag` and coded on Base64. If there's a problem encrypting, nil is retuned.
+     - Returns: Combined ChaChaPoly Selead box  (nonce || ciphertext || tag) coded on base64. If there's a problem encrypting, `nil` is retuned.
      */
-    func sealChaChaPoly(publicKey: String, salt: String) -> String? {
-        guard let publicKeyData = Data(base64Encoded: publicKey) else {
+    public func sealChaChaPoly(recipientPublicKey: P256.KeyAgreement.PublicKey, salt: String) -> String? {
+        guard let data = self.data(using: .utf8) else {
             return nil
         }
 
@@ -44,24 +45,20 @@ extension String {
             return nil
         }
 
-        guard let data = self.data(using: .utf8) else {
-            return nil
-        }
-
-        return data.sealChaChaPoly(publicKey: publicKeyData, salt: saltData)?.base64EncodedString()
+        return data.sealChaChaPoly(recipientPublicKey: recipientPublicKey, salt: saltData)?.base64EncodedString()
     }
 
     /**
      Decrypts current ChaChaPoly Selead box coded combined as `nonce || ciphertext || tag` and coded on Base64  using ChaChaPoly cipher.
 
      - Parameters:
-        - publicKey: Raw Representation of Recipient P-256 puiblic key coded on Base64.
+        - senderPublicKey: Sender public key.
         - salt: The salt to use for key derivation.
 
-     - Returns: Decrypts the message and verifies its authenticity using ChaChaPoly. If there's a problem decrypting, nil is retuned.
+     - Returns: Decrypts the message and verifies its authenticity using ChaChaPoly. If there's a problem decrypting, `nil` is retuned.
      */
-    func openChaChaPoly(publicKey: String, salt:String) -> String? {
-        guard let publicKeyData = Data(base64Encoded: publicKey) else {
+    public func openChaChaPoly(senderPublicKey: P256.KeyAgreement.PublicKey, salt: String) -> String? {
+        guard let data = Data(base64Encoded: self) else {
             return nil
         }
 
@@ -69,11 +66,7 @@ extension String {
             return nil
         }
 
-        guard let data = Data(base64Encoded: self) else {
-            return nil
-        }
-
-        guard let decryptedData = data.openChaChaPoly(publicKey: publicKeyData, salt: saltData) else {
+        guard let decryptedData = data.openChaChaPoly(senderPublicKey: senderPublicKey, salt: saltData) else {
             return nil
         }
 

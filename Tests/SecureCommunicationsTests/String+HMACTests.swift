@@ -34,51 +34,31 @@ final class StringHMACTests: XCTestCase {
     private var message = "This is a message"
     private var salt = "Here's some salt data to use for testing"
     private var privateKey = try! SecureEnclave.P256.KeyAgreement.PrivateKey()
-    private var publicKey: String!
+    private var publicKey: P256.KeyAgreement.PublicKey!
 
     override func setUp() {
         deleteKey()
-        publicKey = privateKey.publicKey.rawRepresentation.base64EncodedString()
+        publicKey = privateKey.publicKey
     }
 
     override func tearDown() {
         deleteKey()
     }
 
-    func test_Given_Data_When_ComputesAMessageAuthenticationCodeWithNoValidKey_Then_Nil() {
-        XCTAssertNil(message.authenticationCodeHMAC(publicKey: "", salt: salt))
-    }
-
     func test_Given_Data_When_ComputesAMessageAuthenticationCode_Then_MessageAuthenticationCode() {
         let messageAuthenticationCode = message.authenticationCodeHMAC(
-            publicKey: publicKey,
+            recipientPublicKey: publicKey,
             salt: salt)
 
         XCTAssertNotNil(messageAuthenticationCode)
     }
 
-    func test_Given_Data_When_ComputesAMessageAuthenticationCodeAndValidates_Then_True() throws {
-        guard let messageAuthenticationCode = message.authenticationCodeHMAC(
-            publicKey: publicKey,
-            salt: salt) else {
-                XCTFail("Message Authentication Code cannot be nil")
-                return
-        }
-
-        let validation = message.isValidAuthenticationCodeHMAC(
-            authenticationCode: messageAuthenticationCode,
-            publicKey: publicKey,
-            salt: salt)
-
-        XCTAssertTrue(validation)
-    }
-
     func test_Given_Data_When_ComputesAMessageAuthenticationCodeAndValidatesOnRecipient_Then_True() throws {
         guard let messageAuthenticationCode = message.authenticationCodeHMAC(
-            publicKey: publicKey,
-            salt: salt) else {
-                XCTFail("Message Authentication Code cannot be nil")
-                return
+                recipientPublicKey: publicKey,
+                salt: salt) else {
+            XCTFail("Message Authentication Code cannot be nil")
+            return
         }
 
         let validation = try validate(string: messageAuthenticationCode)
@@ -94,7 +74,7 @@ final class StringHMACTests: XCTestCase {
 
         let validation = message.isValidAuthenticationCodeHMAC(
             authenticationCode: messageAuthenticationCode,
-            publicKey: publicKey,
+            senderPublicKey: publicKey,
             salt: salt)
 
         XCTAssertTrue(validation)
@@ -103,7 +83,7 @@ final class StringHMACTests: XCTestCase {
     func test_Given_WrongSizeMessageAuthenticationCode_When_ValidatesOnRecipient_Then_False() throws {
         let validation = message.isValidAuthenticationCodeHMAC(
             authenticationCode: "",
-            publicKey: publicKey,
+            senderPublicKey: publicKey,
             salt: salt)
 
         XCTAssertFalse(validation)
@@ -119,19 +99,15 @@ final class StringHMACTests: XCTestCase {
 
         let validation = message.isValidAuthenticationCodeHMAC(
             authenticationCode: messageAuthenticationCode,
-            publicKey: newPrivateKey.publicKey.rawRepresentation.base64EncodedString(),
+            senderPublicKey: newPrivateKey.publicKey,
             salt: salt)
 
         XCTAssertFalse(validation)
     }
 
     private func getSymmetricKey() throws -> SymmetricKey {
-        let publicKey = try P256
-            .KeyAgreement
-            .PublicKey(rawRepresentation: KeyStore().getPublicKey())
-
         return try privateKey
-            .sharedSecretFromKeyAgreement(with: publicKey)
+            .sharedSecretFromKeyAgreement(with: try KeyStore().publicKey())
             .hkdfDerivedSymmetricKey(
                 using: SHA512.self,
                 salt: salt.data(using: .utf8)!,

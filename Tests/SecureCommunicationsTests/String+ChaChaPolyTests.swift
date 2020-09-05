@@ -34,54 +34,32 @@ final class StringChaChaPolyTests: XCTestCase {
     private var message = "This is top secret"
     private var salt = "Here's some salt data to use for testing"
     private var privateKey = try! SecureEnclave.P256.KeyAgreement.PrivateKey()
-    private var publicKey: String!
+    private var publicKey: P256.KeyAgreement.PublicKey!
 
     override func setUp() {
         deleteKey()
-        publicKey = privateKey.publicKey.rawRepresentation.base64EncodedString()
+        publicKey = privateKey.publicKey
     }
 
     override func tearDown() {
         deleteKey()
     }
 
-    func test_Given_String_When_EncryptWithNoValidKey_Then_Nil() {
-        XCTAssertNil(message.sealChaChaPoly(publicKey: "", salt: salt))
-    }
-
     func test_Given_String_When_Encrypt_Then_EncryptedValue() {
         let encryptedMessage = message.sealChaChaPoly(
-            publicKey: publicKey,
+            recipientPublicKey: publicKey,
             salt: salt)
 
         XCTAssertNotNil(encryptedMessage)
         XCTAssertNotEqual(message, encryptedMessage)
     }
 
-    func test_Given_String_When_EncryptAndDecrypt_Then_OriginalValue() throws {
-        guard let encryptedMessage = message.sealChaChaPoly(
-            publicKey: publicKey,
-            salt: salt) else {
-                XCTFail("Encrypted message cannot be nil")
-                return
-        }
-
-        guard let decryptedMessage = encryptedMessage.openChaChaPoly(
-            publicKey: publicKey,
-            salt: salt) else {
-                XCTFail("Decrypted message cannot be nil")
-                return
-        }
-
-        XCTAssertEqual(message, decryptedMessage)
-    }
-
     func test_Given_String_When_EncryptAndDecryptOnRecipient_Then_OriginalValue() throws {
         guard let encryptedMessage = message.sealChaChaPoly(
-            publicKey: publicKey,
-            salt: salt) else {
-                XCTFail("Encrypted message cannot be nil")
-                return
+                recipientPublicKey: publicKey,
+                salt: salt) else {
+            XCTFail("Encrypted message cannot be nil")
+            return
         }
 
         let decryptedMessage = try decrypt(string: encryptedMessage)
@@ -96,10 +74,10 @@ final class StringChaChaPolyTests: XCTestCase {
         }
 
         guard let decryptedMessage = encryptedMessage.openChaChaPoly(
-            publicKey: publicKey,
-            salt: salt) else {
-                XCTFail("Decrypted message cannot be nil")
-                return
+                senderPublicKey: publicKey,
+                salt: salt) else {
+            XCTFail("Decrypted message cannot be nil")
+            return
         }
 
         XCTAssertEqual(message, decryptedMessage)
@@ -107,7 +85,7 @@ final class StringChaChaPolyTests: XCTestCase {
 
     func test_Given_WrongSizeMessage_When_DecryptOnRecipient_Then_Nil() {
         let decryptedMessage = "".openChaChaPoly(
-            publicKey: publicKey,
+            senderPublicKey: publicKey,
             salt: salt)
 
         XCTAssertNil(decryptedMessage)
@@ -122,19 +100,15 @@ final class StringChaChaPolyTests: XCTestCase {
         let newPrivateKey = try SecureEnclave.P256.KeyAgreement.PrivateKey()
 
         let decryptedMessage = encryptedMessage.openChaChaPoly(
-            publicKey: newPrivateKey.publicKey.rawRepresentation.base64EncodedString(),
+            senderPublicKey: newPrivateKey.publicKey,
             salt: salt)
 
         XCTAssertNil(decryptedMessage)
     }
 
     private func getSymmetricKey() throws -> SymmetricKey {
-        let publicKey = try P256
-            .KeyAgreement
-            .PublicKey(rawRepresentation: KeyStore().getPublicKey())
-
         return try privateKey
-            .sharedSecretFromKeyAgreement(with: publicKey)
+            .sharedSecretFromKeyAgreement(with: try KeyStore().publicKey())
             .hkdfDerivedSymmetricKey(
                 using: SHA512.self,
                 salt: salt.data(using: .utf8)!,

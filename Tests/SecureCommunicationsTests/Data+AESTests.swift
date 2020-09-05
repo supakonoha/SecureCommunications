@@ -34,54 +34,32 @@ final class DataAESTests: XCTestCase {
     private var message = "This is top secret".data(using: .utf8)!
     private var salt = "Here's some salt data to use for testing".data(using: .utf8)!
     private var privateKey = try! SecureEnclave.P256.KeyAgreement.PrivateKey()
-    private var publicKey: Data!
+    private var publicKey: P256.KeyAgreement.PublicKey!
 
     override func setUp() {
         deleteKey()
-        publicKey = privateKey.publicKey.rawRepresentation
+        publicKey = privateKey.publicKey
     }
 
     override func tearDown() {
         deleteKey()
     }
 
-    func test_Given_Data_When_EncryptWithNoValidKey_Then_Nil() {
-        XCTAssertNil(message.sealAES(publicKey: Data(), salt: salt))
-    }
-
     func test_Given_Data_When_Encrypt_Then_EncryptedValue() {
         let encryptedMessage = message.sealAES(
-            publicKey: publicKey,
+            recipientPublicKey: publicKey,
             salt: salt)
 
         XCTAssertNotNil(encryptedMessage)
         XCTAssertNotEqual(message, encryptedMessage)
     }
 
-    func test_Given_Data_When_EncryptAndDecrypt_Then_OriginalValue() throws {
-        guard let encryptedMessage = message.sealAES(
-            publicKey: publicKey,
-            salt: salt) else {
-                XCTFail("Encrypted message cannot be nil")
-                return
-        }
-
-        guard let decryptedMessage = encryptedMessage.openAES(
-            publicKey: publicKey,
-            salt: salt) else {
-                XCTFail("Decrypted message cannot be nil")
-                return
-        }
-
-        XCTAssertEqual(message, decryptedMessage)
-    }
-
     func test_Given_Data_When_EncryptAndDecryptOnRecipient_Then_OriginalValue() throws {
         guard let encryptedMessage = message.sealAES(
-            publicKey: publicKey,
-            salt: salt) else {
-                XCTFail("Encrypted message cannot be nil")
-                return
+                recipientPublicKey: publicKey,
+                salt: salt) else {
+            XCTFail("Encrypted message cannot be nil")
+            return
         }
 
         let decryptedMessage = try decrypt(data: encryptedMessage)
@@ -96,10 +74,10 @@ final class DataAESTests: XCTestCase {
         }
 
         guard let decryptedMessage = encryptedMessage.openAES(
-            publicKey: publicKey,
-            salt: salt) else {
-                XCTFail("Decrypted message cannot be nil")
-                return
+                senderPublicKey: publicKey,
+                salt: salt) else {
+            XCTFail("Decrypted message cannot be nil")
+            return
         }
 
         XCTAssertEqual(message, decryptedMessage)
@@ -107,7 +85,7 @@ final class DataAESTests: XCTestCase {
 
     func test_Given_WrongSizeMessage_When_DecryptOnRecipient_Then_Nil() throws {
         let decryptedMessage = Data().openAES(
-            publicKey: publicKey,
+            senderPublicKey: publicKey,
             salt: salt)
 
         XCTAssertNil(decryptedMessage)
@@ -122,19 +100,15 @@ final class DataAESTests: XCTestCase {
         let newPrivateKey = try SecureEnclave.P256.KeyAgreement.PrivateKey()
 
         let decryptedMessage = encryptedMessage.openAES(
-            publicKey: newPrivateKey.publicKey.rawRepresentation,
+            senderPublicKey: newPrivateKey.publicKey,
             salt: salt)
 
         XCTAssertNil(decryptedMessage)
     }
 
     private func getSymmetricKey() throws -> SymmetricKey {
-        let publicKey = try P256
-            .KeyAgreement
-            .PublicKey(rawRepresentation: KeyStore().getPublicKey())
-
         return try privateKey
-            .sharedSecretFromKeyAgreement(with: publicKey)
+            .sharedSecretFromKeyAgreement(with: try KeyStore().publicKey())
             .hkdfDerivedSymmetricKey(
                 using: SHA512.self,
                 salt: salt,

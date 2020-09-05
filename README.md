@@ -1,6 +1,6 @@
 # SecureCommunications
 
-![badge-languages][] ![badge-pms][] ![badge-platforms][]
+![badge-languages][] ![badge-pms][] ![badge-swift][] ![badge-platforms][]
 
 ---
 
@@ -11,10 +11,10 @@ let salt = "This is our salt"
 let message = "This is a top secret message"
 
 let encryptedMessage = message.sealAES(
-    publicKey: recipientPublicKey,
+    recipientPublicKey: recipientPublicKey,
     salt: salt)
 
-let myPublicKey = try KeyStore().getPublicKey()
+let myPublicKey = try KeyStore().publicKey()
 ```
 # Note
 
@@ -26,12 +26,24 @@ On MacOS don't forget to enable keychain sharing entitlement
 
 # Quick Start
 
-In your `Package.swift` file:
+#### Add dependencies
+
+Add the `SecureCommunicationsVapor` package to the dependencies within your appliction's `Package.swift` file:
 
 ```swift
-package.dependencies.append(
 .package(url: "https://github.com/supakonoha/SecureCommunications", from: "1.0.0")
-)
+```
+
+Add  `SecureCommunicationsVapor` to your target's dependencies:
+
+```swift
+.target(name: "example", dependencies: ["SecureCommunications"]),
+```
+
+#### Import package
+
+```swift
+import SecureCommunications
 ```
 # Complying with Encryption Export Regulations
 
@@ -63,20 +75,57 @@ The `KeyStore` struct manages a P-256 private key used for key agreement. You do
 
 If you want to send an encrypted message you will need to share your Public Key. For that you can use:
 
-## `getPublicKey`
+## `publicKey()`
 
 ```swift
-let myPublicKey = try KeyStore().getPublicKey()
+let myPublicKey = try KeyStore().publicKey()
 ```
 
-This method will return a raw representation of your public key as `Data`
+This method will return a `P256.KeyAgreement.PublicKey` instance of the public key.
+
+## `publicKeyInX963Representation()`
+
+```swift
+let myPublicKey = try KeyStore().publicKeyInX963Representation()
+```
+
+This method will return an ANSI x9.63 representation of the public key as `Data`.
+
+## `publicKeyInRawRepresentation()`
+
+```swift
+let myPublicKey = try KeyStore().publicKeyInRawRepresentation()
+```
+
+This method will return a RAW representation of your public key as `Data`
+
+## `publicKeyInPemRepresentation()`
+
+This function is available only starting on iOS 14.0, macOS 11.0, watchOS 7.0 and tvOS 14.0
+
+```swift
+let myPublicKey = try KeyStore().publicKeyInPemRepresentation()
+```
+
+This method will return a PEM representation of your public key as `String`
+
+## `publicKeyInDerRepresentation()`
+
+This function is available only starting on iOS 14.0, macOS 11.0, watchOS 7.0 and tvOS 14.0
+
+```swift
+let myPublicKey = try KeyStore().publicKeyInDerRepresentation()
+```
+
+This method will return a DER representation of your public key as `Data`
 
 # Ciphers
 
 If you want to encrypt a message and send it to a recipient you can use AES and ChaChaPoly. The recipient of the encrypted message will use same cipher and will need your public key and the salt used for creating the symmetic key. For the full process you will need:
 
-- Recipient public key: A raw representation of the public key created from a P-256 private key on the recipient. You will need it to encrypt the message. In case the recipient is a server, please, share the server public key in a secure way like using `CloudKit`. Please, don't hard-code the public key on the source code or abfuscate it, don't store it on Xcode Configuration or Info.plist files and never stores it on device once you have received it.
-- Your public key: If you are a client you can share it with the recipient. The recipient will need it to decrypt the message.
+- The message: Original message if you want to encrypt, or encrypted message if you want to decrypt it
+- Public key of the other part: A `P256.KeyAgreement.PublicKey` instance of the public key of other part. You will need it to encrypt the message. In case the recipient is a server, please, share the server public key in a secure way like using `CloudKit`. Please, don't hard-code the public key on the source code or abfuscate it, don't store it on Xcode Configuration or Info.plist files and never stores it on device once you have received it.
+- Your public key: You will need to pass to the other part, so it can encrypt or decrypt.
 - Salt: The salt to use for key derivation. This salt can be shared between sender and recipient.
 
 ## AES.GCM
@@ -87,53 +136,49 @@ The Advanced Encryption Standard (AES) Galois Counter Mode (GCM) cipher suite.
 
 To encrypt a message the library has added some extensions to `String` and `Data` classes
 
-If you want to encrypt some `Data` you will need to use `sealAES(publicKey: Data, salt: Data)`. It requieres the raw representation of the recipient public key and the salt
+If you want to encrypt some `Data` you will need to use `sealAES(recipientPublicKey: P256.KeyAgreement.PublicKey, salt: Data)` function on the original message. It requieres the other part public key and the salt. You will receive the encrypted message that you can send to the other part with your public key and the salt.
 
 ```swift
 let salt = "This is our salt".data(using: .utf8)!
 let message = "This is a top secret message".data(using: .utf8)!
 
 let encryptedMessage = message.sealAES(
-    publicKey: recipientPublicKey,
+    recipientPublicKey: recipientPublicKey,
     salt: salt)
-
-let myPublicKey = try KeyStore().getPublicKey()
 ```
 
-If you want to encrypt some `String` you will need to use `sealAES(publicKey: String, salt: String)`. It requieres the raw representation of the recipient public key coded on Base64 and the salt
+If you want to encrypt some `String` you will need to use `sealAES(recipientPublicKey: P256.KeyAgreement.PublicKey, salt: String)` function on the original message. It requieres the other part public key and the salt. You will receive the encrypted message encoded on Base64 that you can send to the other part with your public key and the salt.
 
 ```swift
 let salt = "This is our salt"
 let message = "This is a top secret message"
 
 let encryptedMessage = message.sealAES(
-    publicKey: recipientPublicKey,
+    recipientPublicKey: recipientPublicKey,
     salt: salt)
-
-let myPublicKey = try KeyStore().getPublicKey().base64EncodedString()
 ```
 
 ### Decrypt a message
 
 To decrypt a message the library has added some extensions to `String` and `Data` classes
 
-If you want to decrypt some `Data` you will need to use `openAES(publicKey: Data, salt:Data)`. It requieres the encrypted message, the raw representation of the recipient public key and the salt
+If you want to decrypt some `Data` you will need to use `openAES(senderPublicKey: P256.KeyAgreement.PublicKey, salt:Data)` function on the encrypted message. It requieres the other part public key and the salt. You will receive the original message.
 
 ```swift
 let salt = "This is our salt".data(using: .utf8)!
 
 let message = encryptedMessage.openAES(
-    publicKey: recipientPublicKey,
+    senderPublicKey: senderPublicKey,
     salt: salt)
 ```
 
-If you want to decrypt some `String` you will need to use `openAES(publicKey: String, salt: String)`. It requieres the encrypted message coded on Base64 the raw representation of the recipient public key coded on Base64 and the salt
+If you want to decrypt some `String` you will need to use `openAES(senderPublicKey: P256.KeyAgreement.PublicKey, salt: String)` function on the encrypted message encoded on Base64. It requieres the other part public key and the salt. You will receive the original message.
 
 ```swift
 let salt = "This is our salt"
 
 let message = encryptedMessage.openAES(
-    publicKey: recipientPublicKey,
+    senderPublicKey: senderPublicKey,
     salt: salt)
 ```
 
@@ -145,53 +190,49 @@ ChaCha20-Poly1305 cipher.
 
 To encrypt a message the library has added some extensions to `String` and `Data` classes
 
-If you want to encrypt some `Data` you will need to use `sealChaChaPoly(publicKey: Data, salt: Data)`. It requieres the raw representation of the recipient public key and the salt
+If you want to encrypt some `Data` you will need to use `sealChaChaPoly(recipientPublicKey: P256.KeyAgreement.PublicKey, salt: Data)` function on the original message. It requieres the other part public key and the salt. You will receive the encrypted message that you can send to the other part with your public key and the salt.
 
 ```swift
 let salt = "This is our salt".data(using: .utf8)!
 let message = "This is a top secret message".data(using: .utf8)!
 
 let encryptedMessage = message.sealChaChaPoly(
-    publicKey: recipientPublicKey,
+    recipientPublicKey: recipientPublicKey,
     salt: salt)
-
-let myPublicKey = try KeyStore().getPublicKey()
 ```
 
-If you want to encrypt some `String` you will need to use `sealChaChaPoly(publicKey: String, salt: String)`. It requieres the raw representation of the recipient public key coded on Base64 and the salt
+If you want to encrypt some `String` you will need to use `sealChaChaPoly(recipientPublicKey: P256.KeyAgreement.PublicKey, salt: String)` function on the original message. It requieres the other part public key and the salt. You will receive the encrypted message encoded on Base64 that you can send to the other part with your public key and the salt.
 
 ```swift
 let salt = "This is our salt"
 let message = "This is a top secret message"
 
 let encryptedMessage = message.sealChaChaPoly(
-    publicKey: recipientPublicKey,
+    recipientPublicKey: recipientPublicKey,
     salt: salt)
-
-let myPublicKey = try KeyStore().getPublicKey().base64EncodedString()
 ```
 
 ### Decrypt a message
 
 To decypt a message the library has added some extensions to `String` and `Data` classes
 
-If you want to decrypt some `Data` you will need to use `openChaChaPoly(publicKey: Data, salt:Data)`. It requieres the encrypted message, the raw representation of the recipient public key and the salt
+If you want to decrypt some `Data` you will need to use `openChaChaPoly(senderPublicKey: P256.KeyAgreement.PublicKey, salt:Data)` function on the encrypted message. It requieres the other part public key and the salt. You will receive the original message.
 
 ```swift
 let salt = "This is our salt".data(using: .utf8)!
 
 let message = encryptedMessage.openChaChaPoly(
-    publicKey: recipientPublicKey,
+    senderPublicKey: senderPublicKey,
     salt: salt)
 ```
 
-If you want to decrypt some `String` you will need to use `openChaChaPoly(publicKey: String, salt: String)`. It requieres the encrypted message coded on Base64 the raw representation of the recipient public key coded on Base64 and the salt
+If you want to decrypt some `String` you will need to use `openChaChaPoly(senderPublicKey: P256.KeyAgreement.PublicKey, salt: String)` function on the encrypted message encoded on Base64. It requieres the other part public key and the salt. You will receive the original message.
 
 ```swift
 let salt = "This is our salt"
 
 let message = encryptedMessage.openChaChaPoly(
-    publicKey: recipientPublicKey,
+    senderPublicKey: senderPublicKey,
     salt: salt)
 ```
 
@@ -201,10 +242,11 @@ Use hash-based message authentication to create a code with a value that’s dep
 
 As with digital signing, the data isn’t hidden by this process.
 
-If you want to compute or validate a message authentication code you can use HMAC. The recipient of the message authentication code will use same HMAC configurtion and will need your public key and the salt used for creating the symmetic key. For the full process you will need:
+If you want to compute or validate a message authentication code you can use HMAC. The recipient of the message authentication code will use same HMAC configuration and will need your public key and the salt used for creating the symmetic key. For the full process you will need:
 
 - The message.
-- Recipient public key: A raw representation of the public key created from a P-256 private key on the recipient. You will need it to encrypt the message. In case the recipient is a server, please, share the server public key in a secure way like using `CloudKit`. Please, don't hard-code the public key on the source code or abfuscate it, don't store it on Xcode Configuration or Info.plist files and never stores it on device once you have received it.
+- The message authentication code. If you are computing it, you will send it to the other part so it can validate it. If you are receiving it, you can validate it.
+- Public key of the other part: A `P256.KeyAgreement.PublicKey` instance of the public key of other part. You will need it to compute the authentication code for the message or validate it. In case the recipient is a server, please, share the server public key in a secure way like using `CloudKit`. Please, don't hard-code the public key on the source code or abfuscate it, don't store it on Xcode Configuration or Info.plist files and never stores it on device once you have received it.
 - Your public key: If you are a client you can share it with the recipient. The recipient will need it to validate the message authentication code.
 - Salt: The salt to use for key derivation. This salt can be shared between sender and recipient.
 
@@ -216,37 +258,33 @@ A hash-based message authentication algorithm.
 
 To compute a message authentication code the library has added some extensions to `String` and `Data` classes
 
-If you want to compute some `Data` you will need to use `authenticationCodeHMAC(publicKey: Data, salt: Data)`. It requieres the raw representation of the recipient public key and the salt
+If you want to compute some `Data` you will need to use `authenticationCodeHMAC(recipientPublicKey: P256.KeyAgreement.PublicKey, salt: Data)` function on the message.  It requieres the other part public key and the salt. You will receive the message authentication code that you can send to the other part with the original message, your public key and the salt.
 
 ```swift
 let salt = "This is our salt".data(using: .utf8)!
 let message = "This is a public message".data(using: .utf8)!
 
 let messageAuthenticationCode = message.authenticationCodeHMAC(
-    publicKey: recipientPublicKey,
+    recipientPublicKey: recipientPublicKey,
     salt: salt)
-
-let myPublicKey = try KeyStore().getPublicKey()
 ```
 
-If you want to compute some `String` you will need to use `authenticationCodeHMAC(publicKey: String, salt: String)`. It requieres the raw representation of the recipient public key coded on Base64 and the salt
+If you want to compute some `String` you will need to use `authenticationCodeHMAC(recipientPublicKey: P256.KeyAgreement.PublicKey, salt: String)` function on the message.  It requieres the other part public key and the salt. You will receive the message authentication code encoded on Base64 that you can send to the other part with the original message, your public key and the salt.
 
 ```swift
 let salt = "This is our salt"
 let message = "This is a public message"
 
 let messageAuthenticationCode = message.authenticationCodeHMAC(
-    publicKey: recipientPublicKey,
+    recipientPublicKey: recipientPublicKey,
     salt: salt)
-
-let myPublicKey = try KeyStore().getPublicKey().base64EncodedString()
 ```
 
 ### Validate a message authentication code
 
 To validate a message authentication code the library has added some extensions to `String` and `Data` classes
 
-If you want to validate some `Data` you will need to use `isValidAuthenticationCodeHMAC(authenticationCode: authenticationCodeData, publicKey: Data, salt:Data)` on the original message. It requieres the original message, the message authentication code, the raw representation of the recipient public key and the salt
+If you want to validate some `Data` you will need to use `isValidAuthenticationCodeHMAC(authenticationCode: Data, senderPublicKey: P256.KeyAgreement.PublicKey, salt:Data)` function on the original message.  It requieres the message authentication code, the other part public key and the salt. You will receive `true` if the original message has not been modified.
 
 ```swift
 let salt = "This is our salt".data(using: .utf8)!
@@ -254,11 +292,11 @@ let message = "This is a public message".data(using: .utf8)!
 
 let isValid = message.isValidAuthenticationCodeHMAC(
     authenticationCode: authenticationCode, 
-    publicKey: recipientPublicKey,
+    senderPublicKey: senderPublicKey,
     salt: salt)
 ```
 
-If you want to validate some `String` you will need to use `isValidAuthenticationCodeHMAC(authenticationCode: authenticationCodeData,publicKey: String, salt: String)`. It requieres the original message, the message authentication code coded on Base64 the raw representation of the recipient public key coded on Base64 and the salt
+If you want to validate some `String` you will need to use `isValidAuthenticationCodeHMAC(authenticationCode: String, senderPublicKey: P256.KeyAgreement.PublicKey, salt: String)` function on the original message.  It requieres the message authentication code encoded on Base64, the other part public key and the salt. You will receive `true` if the original message has not been modified.
 
 ```swift
 let salt = "This is our salt"
@@ -266,10 +304,15 @@ let message = "This is a public message"
 
 let isValid = message.isValidAuthenticationCodeHMAC(
     authenticationCode: authenticationCode, 
-    publicKey: recipientPublicKey,
+    senderPublicKey: senderPublicKey,
     salt: salt)
 ```
 
+# API Reference
+
+You can check API Reference on [documentation site](https://supakonoha.github.io/SecureCommunications/)
+
 [badge-languages]: https://img.shields.io/badge/languages-Swift-orange.svg
 [badge-pms]: https://img.shields.io/badge/supports-SwiftPM-green.svg
+[badge-swift]: http://img.shields.io/badge/swift-5.3-brightgreen.svg
 [badge-platforms]: https://img.shields.io/badge/platforms-iOS%2013.0%20%7C%20OSX%2010.15%20%7C%20watchOS%206.0%20%7C%20tvOS%2013.0-lightgrey.svg

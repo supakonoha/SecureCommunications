@@ -31,16 +31,16 @@ extension Data {
      Computes a message authentication code for the given data using HMAC from current data.
 
      - Parameters:
-        - publicKey: Raw Representation of Recipient P-256 puiblic key.
+        - recipientPublicKey: Recipient public key.
         - salt: The salt to use for key derivation.
 
-     - Returns: Message authentication code. If there's a problem computing, nil is retuned.
+     - Returns: Message authentication code. If there's a problem computing, `nil` is retuned.
      */
-    func authenticationCodeHMAC(publicKey: Data, salt: Data) -> Data? {
+    public func authenticationCodeHMAC(recipientPublicKey: P256.KeyAgreement.PublicKey, salt: Data) -> Data? {
         guard let symmetricKey = try? KeyStore().getSymmetricKey(
-            recipientPublicKey: publicKey,
-            salt: salt) else {
-                return nil
+                publicKey: recipientPublicKey,
+                salt: salt) else {
+            return nil
         }
 
         return Data(HMAC<SHA512>.authenticationCode(for: self, using: symmetricKey))
@@ -51,16 +51,16 @@ extension Data {
 
      - Parameters:
         - authenticationCode: authentication code to validate.
-        - publicKey: Raw Representation of Recipient P-256 puiblic key.
+        - senderPublicKey: Sender public key.
         - salt: The salt to use for key derivation.
 
-     - Returns:  Boolean indicating whether the given code is valid for current data. If there's a problem validating, false is retuned.
+     - Returns: Boolean indicating whether the given code is valid for current data. If there's a problem validating, `false` is retuned.
      */
-    func isValidAuthenticationCodeHMAC(authenticationCode: Data, publicKey: Data, salt: Data) -> Bool {
+    public func isValidAuthenticationCodeHMAC(authenticationCode: Data, senderPublicKey: P256.KeyAgreement.PublicKey, salt: Data) -> Bool {
         guard let symmetricKey = try? KeyStore().getSymmetricKey(
-            recipientPublicKey: publicKey,
-            salt: salt) else {
-                return false
+                publicKey: senderPublicKey,
+                salt: salt) else {
+            return false
         }
 
         return HMAC<SHA512>.isValidAuthenticationCode(authenticationCode, authenticating: self, using: symmetricKey)

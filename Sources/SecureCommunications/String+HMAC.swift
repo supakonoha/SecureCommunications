@@ -24,19 +24,20 @@
 //
 
 import Foundation
+import CryptoKit
 
 extension String {
     /**
      Computes a message authentication code for the given string using HMAC from current string.
 
      - Parameters:
-        - publicKey: Raw Representation of Recipient P-256 puiblic key coded on Base64.
+        - recipientPublicKey: Recipient public key.
         - salt: The salt to use for key derivation.
 
-     - Returns: Message authentication code. If there's a problem computing, nil is retuned.
+     - Returns: Message authentication code coded on Base64. If there's a problem computing, `nil` is retuned.
      */
-    func authenticationCodeHMAC(publicKey: String, salt: String) -> String? {
-        guard let publicKeyData = Data(base64Encoded: publicKey) else {
+    public func authenticationCodeHMAC(recipientPublicKey: P256.KeyAgreement.PublicKey, salt: String) -> String? {
+        guard let data = self.data(using: .utf8) else {
             return nil
         }
 
@@ -44,11 +45,7 @@ extension String {
             return nil
         }
 
-        guard let data = self.data(using: .utf8) else {
-            return nil
-        }
-
-        return data.authenticationCodeHMAC(publicKey: publicKeyData, salt: saltData)?.base64EncodedString()
+        return data.authenticationCodeHMAC(recipientPublicKey: recipientPublicKey, salt: saltData)?.base64EncodedString()
     }
 
     /**
@@ -56,17 +53,17 @@ extension String {
 
      - Parameters:
         - authenticationCode: authentication code to validate coded on Base64.
-        - publicKey: Raw Representation of Recipient P-256 puiblic key coded on Base64.
+        - senderPublicKey: Sender public key.
         - salt: The salt to use for key derivation.
 
-     - Returns:  Boolean indicating whether the given code is valid for current string. If there's a problem validating, false is retuned.
+     - Returns: Boolean indicating whether the given code is valid for current data. If there's a problem validating, `false` is retuned.
      */
-    func isValidAuthenticationCodeHMAC(authenticationCode: String, publicKey: String, salt: String) -> Bool {
-        guard let authenticationCodeData = Data(base64Encoded: authenticationCode) else {
+    public func isValidAuthenticationCodeHMAC(authenticationCode: String, senderPublicKey: P256.KeyAgreement.PublicKey, salt: String) -> Bool {
+        guard let data = self.data(using: .utf8) else {
             return false
         }
 
-        guard let publicKeyData = Data(base64Encoded: publicKey) else {
+        guard let authenticationCodeData = Data(base64Encoded: authenticationCode) else {
             return false
         }
 
@@ -74,10 +71,9 @@ extension String {
             return false
         }
 
-        guard let data = self.data(using: .utf8) else {
-            return false
-        }
-
-        return data.isValidAuthenticationCodeHMAC(authenticationCode: authenticationCodeData, publicKey: publicKeyData, salt: saltData)
+        return data.isValidAuthenticationCodeHMAC(
+            authenticationCode: authenticationCodeData,
+            senderPublicKey: senderPublicKey,
+            salt: saltData)
     }
 }

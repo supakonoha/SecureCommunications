@@ -24,44 +24,41 @@
 //
 
 import Foundation
+import CryptoKit
 
 extension String {
     /**
      Encrypts current string using AES.GCM cipher.
 
      - Parameters:
-        - publicKey: Raw Representation of Recipient P-256 puiblic key coded on Base64.
+        - recipientPublicKey: Recipient public key.
         - salt: The salt to use for key derivation.
 
-     - Returns: AES Selead box  combined as `nonce || ciphertext || tag` and coded on Base64. If there's a problem encrypting, nil is retuned.
+     - Returns: Combined AES Selead box  (nonce || ciphertext || tag) coded on base64. If there's a problem encrypting, `nil` is retuned.
      */
-    func sealAES(publicKey: String, salt: String) -> String? {
-        guard let publicKeyData = Data(base64Encoded: publicKey) else {
-            return nil
-        }
-
-        guard let saltData = salt.data(using: .utf8) else {
-            return nil
-        }
-
+    public func sealAES(recipientPublicKey: P256.KeyAgreement.PublicKey, salt: String) -> String? {
         guard let data = self.data(using: .utf8) else {
             return nil
         }
 
-        return data.sealAES(publicKey: publicKeyData, salt: saltData)?.base64EncodedString()
+        guard let saltData = salt.data(using: .utf8) else {
+            return nil
+        }
+
+        return data.sealAES(recipientPublicKey: recipientPublicKey, salt: saltData)?.base64EncodedString()
     }
 
     /**
-     Decrypts current AES Selead box coded combined as `nonce || ciphertext || tag` and coded on Base64  using AES.GCM cipher.
+     Decrypts current combined AES Selead box data (nonce || ciphertext || tag) and coded on Base64  using AES.GCM cipher.
 
      - Parameters:
-        - publicKey: Raw Representation of Recipient P-256 puiblic key coded on Base64.
+        - senderPublicKey: Sender public key.
         - salt: The salt to use for key derivation.
 
-     - Returns: Decrypts the message and verifies its authenticity using AES.GCM. If there's a problem decrypting, nil is retuned.
+     - Returns: Decrypts the message and verifies its authenticity using AES.GCM. If there's a problem decrypting, `nil` is retuned.
      */
-    func openAES(publicKey: String, salt:String) -> String? {
-        guard let publicKeyData = Data(base64Encoded: publicKey) else {
+    public func openAES(senderPublicKey: P256.KeyAgreement.PublicKey, salt:String) -> String? {
+        guard let data = Data(base64Encoded: self) else {
             return nil
         }
 
@@ -69,11 +66,7 @@ extension String {
             return nil
         }
 
-        guard let data = Data(base64Encoded: self) else {
-            return nil
-        }
-
-        guard let decryptedData = data.openAES(publicKey: publicKeyData, salt: saltData) else {
+        guard let decryptedData = data.openAES(senderPublicKey: senderPublicKey, salt: saltData) else {
             return nil
         }
 

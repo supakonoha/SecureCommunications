@@ -31,16 +31,16 @@ extension Data {
      Encrypts current data using ChaChaPoly cipher.
 
      - Parameters:
-        - publicKey: Raw Representation of Recipient P-256 puiblic key.
+        - recipientPublicKey: Recipient public key.
         - salt: The salt to use for key derivation.
 
-     - Returns:  combined ChaChaPoly Selead box  (nonce || ciphertext || tag). If there's a problem encrypting, nil is retuned.
+     - Returns: Combined ChaChaPoly Selead box  (nonce || ciphertext || tag). If there's a problem encrypting, `nil` is retuned.
      */
-    func sealChaChaPoly(publicKey: Data, salt: Data) -> Data? {
+    public func sealChaChaPoly(recipientPublicKey: P256.KeyAgreement.PublicKey, salt: Data) -> Data? {
         guard let symmetricKey = try? KeyStore().getSymmetricKey(
-            recipientPublicKey: publicKey,
-            salt: salt) else {
-                return nil
+                publicKey: recipientPublicKey,
+                salt: salt) else {
+            return nil
         }
 
         return try? ChaChaPoly.seal(self, using: symmetricKey).combined
@@ -50,22 +50,22 @@ extension Data {
      Decrypts current combined ChaChaPoly Selead box data (nonce || ciphertext || tag) using ChaChaPoly cipher.
 
      - Parameters:
-        - publicKey: Raw Representation of Recipient P-256 puiblic key.
+        - senderPublicKey: Sender public key.
         - salt: The salt to use for key derivation.
 
-     - Returns: Decrypts the message and verifies its authenticity using ChaChaPoly. If there's a problem decrypting, nil is retuned.
+     - Returns: Decrypts the message and verifies its authenticity using ChaChaPoly. If there's a problem decrypting, `nil` is retuned.
      */
-    func openChaChaPoly(publicKey: Data, salt:Data) -> Data? {
+    public func openChaChaPoly(senderPublicKey: P256.KeyAgreement.PublicKey, salt:Data) -> Data? {
         guard let symmetricKey = try? KeyStore().getSymmetricKey(
-            recipientPublicKey: publicKey,
-            salt: salt) else {
-                return nil
-        }
-
-        guard let sealedBox = try? ChaChaPoly.SealedBox(combined: self) else {
+                publicKey: senderPublicKey,
+                salt: salt) else {
             return nil
         }
 
-        return try? ChaChaPoly.open(sealedBox, using: symmetricKey)
+        guard let chaChaPolySealedBox = try? ChaChaPoly.SealedBox(combined: self) else {
+            return nil
+        }
+
+        return try? ChaChaPoly.open(chaChaPolySealedBox, using: symmetricKey)
     }
 }
