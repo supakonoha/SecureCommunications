@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureCommunications - String</title>
+    <link rel="stylesheet" type="text/css" href="/SecureCommunications/all.css" media="all" />
+</head>
+<body>
+    <header>
+        <a href="/SecureCommunications/">
+            <strong>
+                SecureCommunications
+            </strong>
+            <span>Documentation</span>
+        </a>
+        <sup>Beta</sup>
+    </header>
+
+    <!--
+    <form class="search">
+        <input type="search" placeholder="Search" />
+    </form>
+    -->
+
+    <nav>
+        <div class="wrapper">
+            <h2>On This Page</h2>
+            <ol><li><a href="#methods">Methods</a><ul><li class="function"><a href="#string.sealaes(recipientpublickey:salt:)">seal​AES(recipient​Public​Key:​salt:​)</a></li><li class="function"><a href="#string.openaes(senderpublickey:salt:)">open​AES(sender​Public​Key:​salt:​)</a></li><li class="function"><a href="#string.sealchachapoly(recipientpublickey:salt:)">seal​Cha​Cha​Poly(recipient​Public​Key:​salt:​)</a></li><li class="function"><a href="#string.openchachapoly(senderpublickey:salt:)">open​Cha​Cha​Poly(sender​Public​Key:​salt:​)</a></li><li class="function"><a href="#string.authenticationcodehmac(recipientpublickey:salt:)">authentication​Code​HMAC(recipient​Public​Key:​salt:​)</a></li><li class="function"><a href="#string.isvalidauthenticationcodehmac(authenticationcode:senderpublickey:salt:)">is​Valid​Authentication​Code​HMAC(authentication​Code:​sender​Public​Key:​salt:​)</a></li></ul></li></ol>
+        </div>
+    </nav>
+
+    <main>
+        <article>
+            <h1>
+    <small>Structure</small>
+    <code class="name">String</code>
+</h1>
+
+<html><body><pre class="highlight"><code><span class="keyword">@frozen</span> <span class="keyword">struct</span> <span class="type">String</span></code></pre></body></html>
+<div class="summary" role="doc-abstract">
+    <p>A Unicode string value that is a collection of characters</p>
+
+</div>
+
+    <section id="methods">
+        <h2>Methods</h2>
+
+        <div role="article" class="function" id="string.sealaes(recipientpublickey:salt:)">
+    <h3>
+        <code>seal​AES(recipient​Public​Key:​salt:​)</code>
+    </h3>
+    <html><body><pre class="highlight"><code><span class="keyword">public</span> <span class="keyword">func</span> <span class="function">sealAES</span>(<span class="variable">recipientPublicKey</span>: <span class="type">P256</span>.<span class="type">KeyAgreement</span>.<span class="type">PublicKey</span>, <span class="variable">salt</span>: <span class="type">String</span>) -&gt; <span class="type">String</span>?</code></pre></body></html>
+<div class="summary" role="doc-abstract">
+    <p>Encrypts current string using AES.GCM cipher.</p>
+
+</div>
+<h4>Parameters</h4>
+
+<table class="parameters">
+  <thead hidden>
+  <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+    <tr>
+    <th>recipient​Public​Key</th>
+    <td><code class="type">P256.​Key​Agreement.​Public​Key</code></td>
+    <td><p>Recipient public key.</p>
+</td>
+</tr>
+<tr>
+    <th>salt</th>
+    <td><code class="type">String</code></td>
+    <td><p>The salt to use for key derivation.</p>
+</td>
+</tr>
+  </tbody>
+</table>
+  <h4>Returns</h4>
+  <p>Combined AES Selead box  (nonce || ciphertext || tag) coded on base64. If there's a problem encrypting, <code>nil</code> is retuned.</p>
+
+</div>
+<div role="article" class="function" id="string.openaes(senderpublickey:salt:)">
+    <h3>
+        <code>open​AES(sender​Public​Key:​salt:​)</code>
+    </h3>
+    <html><body><pre class="highlight"><code><span class="keyword">public</span> <span class="keyword">func</span> <span class="function">openAES</span>(<span class="variable">senderPublicKey</span>: <span class="type">P256</span>.<span class="type">KeyAgreement</span>.<span class="type">PublicKey</span>, <span class="variable">salt</span>: <span class="type">String</span>) -&gt; <span class="type">String</span>?</code></pre></body></html>
+<div class="summary" role="doc-abstract">
+    <p>Decrypts current combined AES Selead box data (nonce || ciphertext || tag) and coded on Base64  using AES.GCM cipher.</p>
+
+</div>
+<h4>Parameters</h4>
+
+<table class="parameters">
+  <thead hidden>
+  <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+    <tr>
+    <th>sender​Public​Key</th>
+    <td><code class="type">P256.​Key​Agreement.​Public​Key</code></td>
+    <td><p>Sender public key.</p>
+</td>
+</tr>
+<tr>
+    <th>salt</th>
+    <td><code class="type">String</code></td>
+    <td><p>The salt to use for key derivation.</p>
+</td>
+</tr>
+  </tbody>
+</table>
+  <h4>Returns</h4>
+  <p>Decrypts the message and verifies its authenticity using AES.GCM. If there's a problem decrypting, <code>nil</code> is retuned.</p>
+
+</div>
+<div role="article" class="function" id="string.sealchachapoly(recipientpublickey:salt:)">
+    <h3>
+        <code>seal​Cha​Cha​Poly(recipient​Public​Key:​salt:​)</code>
+    </h3>
+    <html><body><pre class="highlight"><code><span class="keyword">public</span> <span class="keyword">func</span> <span class="function">sealChaChaPoly</span>(<span class="variable">recipientPublicKey</span>: <span class="type">P256</span>.<span class="type">KeyAgreement</span>.<span class="type">PublicKey</span>, <span class="variable">salt</span>: <span class="type">String</span>) -&gt; <span class="type">String</span>?</code></pre></body></html>
+<div class="summary" role="doc-abstract">
+    <p>Encrypts current string using ChaChaPoly cipher.</p>
+
+</div>
+<h4>Parameters</h4>
+
+<table class="parameters">
+  <thead hidden>
+  <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+    <tr>
+    <th>recipient​Public​Key</th>
+    <td><code class="type">P256.​Key​Agreement.​Public​Key</code></td>
+    <td><p>Recipient public key.</p>
+</td>
+</tr>
+<tr>
+    <th>salt</th>
+    <td><code class="type">String</code></td>
+    <td><p>The salt to use for key derivation.</p>
+</td>
+</tr>
+  </tbody>
+</table>
+  <h4>Returns</h4>
+  <p>Combined ChaChaPoly Selead box  (nonce || ciphertext || tag) coded on base64. If there's a problem encrypting, <code>nil</code> is retuned.</p>
+
+</div>
+<div role="article" class="function" id="string.openchachapoly(senderpublickey:salt:)">
+    <h3>
+        <code>open​Cha​Cha​Poly(sender​Public​Key:​salt:​)</code>
+    </h3>
+    <html><body><pre class="highlight"><code><span class="keyword">public</span> <span class="keyword">func</span> <span class="function">openChaChaPoly</span>(<span class="variable">senderPublicKey</span>: <span class="type">P256</span>.<span class="type">KeyAgreement</span>.<span class="type">PublicKey</span>, <span class="variable">salt</span>: <span class="type">String</span>) -&gt; <span class="type">String</span>?</code></pre></body></html>
+<div class="summary" role="doc-abstract">
+    <p>Decrypts current ChaChaPoly Selead box coded combined as <code>nonce || ciphertext || tag</code> and coded on Base64  using ChaChaPoly cipher.</p>
+
+</div>
+<h4>Parameters</h4>
+
+<table class="parameters">
+  <thead hidden>
+  <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+    <tr>
+    <th>sender​Public​Key</th>
+    <td><code class="type">P256.​Key​Agreement.​Public​Key</code></td>
+    <td><p>Sender public key.</p>
+</td>
+</tr>
+<tr>
+    <th>salt</th>
+    <td><code class="type">String</code></td>
+    <td><p>The salt to use for key derivation.</p>
+</td>
+</tr>
+  </tbody>
+</table>
+  <h4>Returns</h4>
+  <p>Decrypts the message and verifies its authenticity using ChaChaPoly. If there's a problem decrypting, <code>nil</code> is retuned.</p>
+
+</div>
+<div role="article" class="function" id="string.authenticationcodehmac(recipientpublickey:salt:)">
+    <h3>
+        <code>authentication​Code​HMAC(recipient​Public​Key:​salt:​)</code>
+    </h3>
+    <html><body><pre class="highlight"><code><span class="keyword">public</span> <span class="keyword">func</span> <span class="function">authenticationCodeHMAC</span>(<span class="variable">recipientPublicKey</span>: <span class="type">P256</span>.<span class="type">KeyAgreement</span>.<span class="type">PublicKey</span>, <span class="variable">salt</span>: <span class="type">String</span>) -&gt; <span class="type">String</span>?</code></pre></body></html>
+<div class="summary" role="doc-abstract">
+    <p>Computes a message authentication code for the given string using HMAC from current string.</p>
+
+</div>
+<h4>Parameters</h4>
+
+<table class="parameters">
+  <thead hidden>
+  <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+    <tr>
+    <th>recipient​Public​Key</th>
+    <td><code class="type">P256.​Key​Agreement.​Public​Key</code></td>
+    <td><p>Recipient public key.</p>
+</td>
+</tr>
+<tr>
+    <th>salt</th>
+    <td><code class="type">String</code></td>
+    <td><p>The salt to use for key derivation.</p>
+</td>
+</tr>
+  </tbody>
+</table>
+  <h4>Returns</h4>
+  <p>Message authentication code coded on Base64. If there's a problem computing, <code>nil</code> is retuned.</p>
+
+</div>
+<div role="article" class="function" id="string.isvalidauthenticationcodehmac(authenticationcode:senderpublickey:salt:)">
+    <h3>
+        <code>is​Valid​Authentication​Code​HMAC(authentication​Code:​sender​Public​Key:​salt:​)</code>
+    </h3>
+    <html><body><pre class="highlight"><code><span class="keyword">public</span> <span class="keyword">func</span> <span class="function">isValidAuthenticationCodeHMAC</span>(<span class="variable">authenticationCode</span>: <span class="type">String</span>, <span class="variable">senderPublicKey</span>: <span class="type">P256</span>.<span class="type">KeyAgreement</span>.<span class="type">PublicKey</span>, <span class="variable">salt</span>: <span class="type">String</span>) -&gt; <span class="type">Bool</span></code></pre></body></html>
+<div class="summary" role="doc-abstract">
+    <p>Returns a Boolean indicating whether the given code is valid for current string using HMAC.</p>
+
+</div>
+<h4>Parameters</h4>
+
+<table class="parameters">
+  <thead hidden>
+  <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+    <tr>
+    <th>authentication​Code</th>
+    <td><code class="type">String</code></td>
+    <td><p>authentication code to validate coded on Base64.</p>
+</td>
+</tr>
+<tr>
+    <th>sender​Public​Key</th>
+    <td><code class="type">P256.​Key​Agreement.​Public​Key</code></td>
+    <td><p>Sender public key.</p>
+</td>
+</tr>
+<tr>
+    <th>salt</th>
+    <td><code class="type">String</code></td>
+    <td><p>The salt to use for key derivation.</p>
+</td>
+</tr>
+  </tbody>
+</table>
+  <h4>Returns</h4>
+  <p>Boolean indicating whether the given code is valid for current data. If there's a problem validating, <code>false</code> is retuned.</p>
+
+</div>
+    </section>
+
+
+
+        </article>
+    </main>
+
+    <footer>
+        <p>
+    Generated on <time datetime="2020-09-05T22:08:58+0200">September 5, 2020</time> using <a href="https://github.com/SwiftDocOrg/swift-doc">swift-doc</a> <span class="version">1.0.0-beta.3</span>.
+</p>
+    </footer>
+</body>
+</html>
