@@ -26,6 +26,7 @@
 import Foundation
 import CryptoKit
 
+@available(iOS 13.2, macOS 10.15, watchOS 6.1, tvOS 13.2, *)
 extension String {
     /**
      Computes a message authentication code for the given string using HMAC from current string.

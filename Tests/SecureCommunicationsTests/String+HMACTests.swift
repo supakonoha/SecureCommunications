@@ -30,6 +30,7 @@ import CryptoKit
 
 /// These tests must be run on device, not in simulator. Secure Enclave is not supported on simulator.
 /// To run these tests on MacOS you need keychain sharing entitlement
+@available(iOS 13.2, macOS 10.15, watchOS 6.1, tvOS 13.2, *)
 final class StringHMACTests: XCTestCase {
     private var message = "This is a message"
     private var salt = "Here's some salt data to use for testing"
